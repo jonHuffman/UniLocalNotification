@@ -1,8 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-namespace Sanukin39
+﻿namespace Sanukin39
 {
     public class EditorLocalNotification : ILocalNotification
     {
@@ -19,11 +15,20 @@ namespace Sanukin39
         {
         }
 
-        public void Register(int delayTime, string message, string title)
+        int ILocalNotification.RegisterSimple(int delayTime, string message, string title)
+        {
+            return 0;
+        }
+
+        public void Register(int requestCode, int delayTime, string message, string title)
         {
         }
 
-        public void CancelAll()
+        public void CancelAllSimpleNotifications()
+        {
+        }
+
+        public void CancelNotification(int requestCode)
         {
         }
     }

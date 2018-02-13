@@ -22,7 +22,7 @@ public class UniLocalNotificationSample : MonoBehaviour {
         int timeDelay;
         if (int.TryParse(timeDelayInput.text, out timeDelay))
         {
-            UniLocalNotification.Register(timeDelay, "Message", "Title");
+            UniLocalNotification.RegisterSimple(timeDelay, "Message", "Title");
             statusText.text = string.Format("Notification Registered After {0} Sec", timeDelay);
         }
     }
@@ -40,7 +40,7 @@ public class UniLocalNotificationSample : MonoBehaviour {
 
     public void CancelAll()
     {
-        UniLocalNotification.CancelAll();
+        UniLocalNotification.CancelAllSimpleNotifications();
         statusText.text = "All Local Notification is Cancelled";
     }
 

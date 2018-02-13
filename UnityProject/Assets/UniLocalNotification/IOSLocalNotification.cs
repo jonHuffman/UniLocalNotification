@@ -3,6 +3,9 @@ using System.Runtime.InteropServices;
 using NotificationType = UnityEngine.iOS.NotificationType;
 using LocalNotification = UnityEngine.iOS.LocalNotification;
 using NotificationServices = UnityEngine.iOS.NotificationServices;
+using System.Collections.Generic;
+using System;
+using UnityEngine;
 
 namespace Sanukin39 {
     public class IOSLocalNotification : ILocalNotification
@@ -12,6 +15,9 @@ namespace Sanukin39 {
 
         [DllImport("__Internal")]
         static extern bool IsNotificationPermitted_();
+
+        const int MaxSimpleNotifications = 5;
+        const string NotificationID = "NOTIFICATION_ID";
 
         /// <summary>
         /// Ask for permission to notify the user
@@ -42,25 +48,117 @@ namespace Sanukin39 {
         }
 
         /// <summary>
-        /// Register local notification
+        /// Register local notification and returns the ID. Used for quickly scheduling a notification.
         /// </summary>
         /// <param name="delayTime">Delay time.</param>
         /// <param name="message">Notification Message.</param>
         /// <param name="title">Notification Title.</param>
-        public void Register(int delayTime, string message, string title = "")
+        /// <returns>ID of the registered notification.</returns>
+        public int RegisterSimple(int delayTime, string message, string title = "")
         {
-            LocalNotification notification = new LocalNotification();
-            notification.fireDate = System.DateTime.Now.AddSeconds(delayTime);
-            notification.alertBody = message;
-            NotificationServices.ScheduleLocalNotification(notification);
+            // Needed a guaranteed unique ID
+            int requestCode;
+
+            for (int i = 0; i < MaxSimpleNotifications; i++)
+            {
+                requestCode = int.MaxValue - i;
+
+                if(!NotificationExists(requestCode))
+                {
+                    LocalNotification notification = new LocalNotification();
+                    notification.fireDate = DateTime.Now.AddSeconds(delayTime);
+                    notification.alertBody = message;
+                    notification.userInfo = new Dictionary<string, int>() { { NotificationID, requestCode } };
+                    NotificationServices.ScheduleLocalNotification(notification);
+                    return requestCode;
+                }
+            }
+
+            Debug.LogError("[UniLocalNotification] - Exceeded maximum concurrent simple notifications!");
+            return -1;
         }
 
         /// <summary>
-        /// Cancel all notifications
+        /// Register local notification with the specified ID. 
+        /// WARNING: You must track and manage these yourself, <see cref="CancelAllSimpleNotifications" /> cannot cancel notifications registerd in this fashion.
         /// </summary>
-        public void CancelAll()
+        /// <param name="requestCode">Notification ID. IDs 2,147,483,643 - 2,147,483,647 are reserved for simple notifications</param>
+        /// <param name="delayTime">Delay time.</param>
+        /// <param name="message">Notification Message.</param>
+        /// <param name="title">Notification Title.</param>
+        public void Register(int requestCode, int delayTime, string message, string title = "")
         {
-            NotificationServices.CancelAllLocalNotifications();
+            if (!NotificationExists(requestCode))
+            {
+                LocalNotification notification = new LocalNotification();
+                notification.fireDate = DateTime.Now.AddSeconds(delayTime);
+                notification.alertBody = message;
+                notification.userInfo = new Dictionary<string, int>() { { NotificationID, requestCode } };
+                NotificationServices.ScheduleLocalNotification(notification);
+            }
+            else
+            {
+                Debug.LogWarningFormat("[UniLocalNotification] - A notification with ID {0} is already registered. Cancel it before attemtping to reschedule it.");
+            }
+        }
+
+        /// <summary>
+        /// Cancel all simple notifications
+        /// </summary>
+        public void CancelAllSimpleNotifications()
+        {
+            for (int i = 0; i < MaxSimpleNotifications; i++)
+            {
+                InternalCancelNotification(int.MaxValue - i);
+            }
+        }
+
+        /// <summary>
+        /// Cancels a specific scheduled notification
+        /// </summary>
+        /// <param name="requestCode">Notification ID.</param>
+        public void CancelNotification(int requestCode)
+        {
+            InternalCancelNotification(requestCode);
+        }
+
+        private bool NotificationExists(int requestCode)
+        {
+            int index = 0;
+
+            while(NotificationServices.GetLocalNotification(index) != null)
+            {
+                index++;
+                LocalNotification notification = NotificationServices.GetLocalNotification(index);
+
+                if(notification.userInfo.Contains(NotificationID) && (int)notification.userInfo[NotificationID] == requestCode)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Checks the Notifications for one that matches the ID and cancels it if it exists.
+        /// </summary>
+        /// <param name="requestCode">Notification ID.</param>
+        private void InternalCancelNotification(int requestCode)
+        {
+            int index = 0;
+
+            while (NotificationServices.GetLocalNotification(index) != null)
+            {
+                index++;
+                LocalNotification notification = NotificationServices.GetLocalNotification(index);
+
+                if (notification.userInfo.Contains(NotificationID) && (int)notification.userInfo[NotificationID] == requestCode)
+                {
+                    NotificationServices.CancelLocalNotification(notification);
+                    break;
+                }
+            }
         }
     }
 }

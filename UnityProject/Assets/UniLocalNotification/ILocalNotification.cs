@@ -1,8 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-namespace Sanukin39
+﻿namespace Sanukin39
 {
     /// <summary>
     /// Interface of using local notification
@@ -12,7 +8,9 @@ namespace Sanukin39
         void Initialize();
         bool IsNotificationPermitted();
         void OpenAppSetting();
-        void Register(int delayTime, string message, string title);
-        void CancelAll();
+        int RegisterSimple(int delayTime, string message, string title);
+        void Register(int requestCode, int delayTime, string message, string title);
+        void CancelAllSimpleNotifications();
+        void CancelNotification(int requestCode);
     }
 }

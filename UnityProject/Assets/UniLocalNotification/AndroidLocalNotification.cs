@@ -1,13 +1,11 @@
 ﻿#if UNITY_ANDROID
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Sanukin39
 {
     public class AndroidLocalNotification : ILocalNotification
     {
-        const int MaxRegisterNum = 5;
+        const int MaxSimpleNotifications = 5;
         const string PackageName = "net.sanukin.unilocalnotification.NotificationSender";
 
         /// <summary>
@@ -38,36 +36,76 @@ namespace Sanukin39
         }
 
         /// <summary>
-        /// Register local notification
+        /// Register local notification and returns the ID. Used for quickly scheduling a notification.
         /// </summary>
         /// <param name="delayTime">Delay time.</param>
         /// <param name="message">Notification Message.</param>
         /// <param name="title">Notification Title.</param>
-        public void Register(int delayTime, string message, string title = "")
+        /// <returns>ID of the registered notification.</returns>
+        public int RegisterSimple(int delayTime, string message, string title = "")
         {
             var c = new AndroidJavaClass(PackageName);
-            for (int i = 0; i < MaxRegisterNum; i++)
+            for (int i = 0; i < MaxSimpleNotifications; i++)
             {
-                if (!c.CallStatic<bool>("hasPendingIntent", i))
+                if (!c.CallStatic<bool>("hasPendingIntent", int.MaxValue - i))
                 {
-                    c.CallStatic("setNotification", title, message, delayTime, i);
-                    break;
+                    c.CallStatic("setNotification", title, message, delayTime, int.MaxValue - i);
+                    return i;
                 }
+            }
+
+            Debug.LogError("[UniLocalNotification] - Exceeded maximum concurrent simple notifications!");
+            return -1;
+        }
+
+        /// <summary>
+        /// Register local notification with the specified ID. 
+        /// WARNING: You must track and manage these yourself, <see cref="CancelAllSimpleNotifications" /> cannot cancel notifications registerd in this fashion.
+        /// </summary>
+        /// <param name="requestCode">Notification ID. IDs 2,147,483,643 - 2,147,483,647 are reserved for simple notifications</param>
+        /// <param name="delayTime">Delay time.</param>
+        /// <param name="message">Notification Message.</param>
+        /// <param name="title">Notification Title.</param>
+        public void Register(int requestCode, int delayTime, string message, string title = "")
+        {
+            var c = new AndroidJavaClass(PackageName);
+
+            if (!c.CallStatic<bool>("hasPendingIntent", requestCode))
+            {
+                c.CallStatic("setNotification", title, message, delayTime, requestCode);
+            }
+            else
+            {
+                Debug.LogWarningFormat("[UniLocalNotification] - A notification with ID {0} is already registered. Cancel it before attemtping to reschedule it.");
             }
         }
 
         /// <summary>
-        /// Cancel all notification
+        /// Cancels all simple notifications
         /// </summary>
-        public void CancelAll()
+        public void CancelAllSimpleNotifications()
         {
             var c = new AndroidJavaClass(PackageName);
-            for (int i = 0; i < MaxRegisterNum; i++)
+            for (int i = 0; i < MaxSimpleNotifications; i++)
             {
                 if (c.CallStatic<bool>("hasPendingIntent", i))
                 {
                     c.CallStatic("cancel", i);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Cancels a specific scheduled notification
+        /// </summary>
+        /// <param name="requestCode">Notification ID.</param>
+        public void CancelNotification(int requestCode)
+        {
+            var c = new AndroidJavaClass(PackageName);
+
+            if (c.CallStatic<bool>("hasPendingIntent", requestCode))
+            {
+                c.CallStatic("cancel", requestCode);
             }
         }
     }
