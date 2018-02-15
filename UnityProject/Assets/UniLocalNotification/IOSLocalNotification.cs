@@ -1,4 +1,4 @@
-﻿#if UNITY_IOS
+﻿#if !UNITY_IOS
 using System.Runtime.InteropServices;
 using NotificationType = UnityEngine.iOS.NotificationType;
 using LocalNotification = UnityEngine.iOS.LocalNotification;
@@ -98,7 +98,7 @@ namespace Sanukin39 {
             }
             else
             {
-                Debug.LogWarningFormat("[UniLocalNotification] - A notification with ID {0} is already registered. Cancel it before attemtping to reschedule it.");
+                Debug.LogWarningFormat("[UniLocalNotification] - A notification with ID {0} is already registered. Cancel it before attemtping to reschedule it.", requestCode.ToString());
             }
         }
 
@@ -124,14 +124,9 @@ namespace Sanukin39 {
 
         private bool NotificationExists(int requestCode)
         {
-            int index = 0;
-
-            while(NotificationServices.GetLocalNotification(index) != null)
+            foreach(LocalNotification notification in NotificationServices.scheduledLocalNotifications)
             {
-                index++;
-                LocalNotification notification = NotificationServices.GetLocalNotification(index);
-
-                if(notification.userInfo.Contains(NotificationID) && (int)notification.userInfo[NotificationID] == requestCode)
+                if (notification.userInfo.Contains(NotificationID) && (int)notification.userInfo[NotificationID] == requestCode)
                 {
                     return true;
                 }
