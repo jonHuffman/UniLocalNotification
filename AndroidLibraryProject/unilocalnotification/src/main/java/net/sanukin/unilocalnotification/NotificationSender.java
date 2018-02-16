@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
 import android.support.v4.app.NotificationManagerCompat;
+import android.util.Log;
 
 import java.util.Calendar;
 
@@ -34,7 +35,7 @@ public class NotificationSender {
             NotificationUtils.CreateChannel();
 
             // Get Context
-            Context context = getContext();
+            Context context = NotificationUtils.GetAppContext();
             Activity currentActivity = UnityPlayer.currentActivity;
 
             // Create intent
@@ -59,7 +60,7 @@ public class NotificationSender {
             AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
             alarmManager.set(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), sender);
         } catch(Exception e){
-            System.err.println("Caught Exception: " + e.getMessage());
+            Log.e("NotificationSender","Caught Exception: " + e.getMessage());
             LogToUnity(e.getMessage());
         }
     }
@@ -69,7 +70,7 @@ public class NotificationSender {
      * @return if notification permitted
      */
     public static boolean isNotificationPermitted() {
-        return NotificationManagerCompat.from(getContext()).areNotificationsEnabled();
+        return NotificationManagerCompat.from(NotificationUtils.GetAppContext()).areNotificationsEnabled();
     }
 
     /**
@@ -79,7 +80,7 @@ public class NotificationSender {
      */
     public static boolean hasPendingIntent(int requestCode) {
 
-        Context context = getContext();
+        Context context = NotificationUtils.GetAppContext();
 
         boolean hasPendingIntent = (PendingIntent.getBroadcast(context, requestCode,
                 new Intent(context, NotificationReceiver.class),
@@ -94,7 +95,7 @@ public class NotificationSender {
      */
     public static void cancel(int requestCode) {
 
-        Context context = getContext();
+        Context context = NotificationUtils.GetAppContext();
 
         // get pending intent
         AlarmManager alarmManager = (AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
@@ -123,14 +124,6 @@ public class NotificationSender {
         intent.putExtra("android.provider.extra.APP_PACKAGE", activity.getPackageName());
 
         activity.startActivity(intent);
-    }
-
-    /**
-     * Get current context
-     * @return current context
-     */
-    private static Context getContext() {
-        return UnityPlayer.currentActivity.getApplicationContext();
     }
 
     private static void LogToUnity(String message)

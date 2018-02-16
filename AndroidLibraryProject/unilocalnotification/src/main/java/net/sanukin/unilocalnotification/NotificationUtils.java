@@ -29,4 +29,12 @@ public class NotificationUtils {
         channel.setVibrationPattern(new long[]{ 300L, 300L});
         notificationManager.createNotificationChannel(channel);
     }
+
+    /**
+     * Get current context
+     * @return current context
+     */
+    public static Context GetAppContext() {
+        return UnityPlayer.currentActivity.getApplicationContext();
+    }
 }

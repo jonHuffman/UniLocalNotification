@@ -14,6 +14,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.support.v4.app.NotificationCompat;
+import android.util.Log;
 
 /**
  * Created by sanukiwataru on 2017/09/17.
@@ -29,7 +30,14 @@ public class NotificationReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
 
-        NotificationManager manager = (NotificationManager) context.getSystemService(Service.NOTIFICATION_SERVICE);
+        if(context == null) {
+            Log.w("NotificationReceiver","Unity's scheduled notification provided null context to onReceive");
+            context = NotificationUtils.GetAppContext();
+        } else {
+            Log.d("NotificationReceiver", "context is NOT null in onReceive");
+        }
+
+        NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
         // get notification info
         String message = intent.getStringExtra("MESSAGE");
