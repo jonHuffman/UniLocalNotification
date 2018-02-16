@@ -1,5 +1,6 @@
 package net.sanukin.unilocalnotification;
 
+import android.annotation.TargetApi;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -11,6 +12,7 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.Build;
 import android.support.v4.app.NotificationCompat;
 
 /**
@@ -27,40 +29,52 @@ public class NotificationReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
 
+        NotificationManager manager = (NotificationManager) context.getSystemService(Service.NOTIFICATION_SERVICE);
+
         // get notification info
         String message = intent.getStringExtra("MESSAGE");
         String title = intent.getStringExtra("TITLE");
         int requestCode = intent.getIntExtra("REQUEST_CODE", 0);
+        String channel;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            channel = intent.getStringExtra("CHANNEL");
+        }
+        else {
+            channel = "";
+        }
+
 
         // create intent for taping notification
-        final PackageManager pm=context.getPackageManager();
-        Intent intentCustom = pm.getLaunchIntentForPackage(context.getPackageName());
+        final PackageManager packageManager = context.getPackageManager();
+        Intent intentCustom = packageManager.getLaunchIntentForPackage(context.getPackageName());
 
         PendingIntent contentIntent = PendingIntent.getActivity(context, 0, intentCustom,
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
-        // create icon bitmap
+        NotificationUtils.CreateChannel();
+
+        // Create notification builder
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channel);
+
+        builder.setContentIntent(contentIntent)
+                .setTicker("")
+                .setContentTitle(title)
+                .setContentText(message);
+
+        // Create and set large icon bitmap in builder
         ApplicationInfo applicationInfo = null;
         try {
-            applicationInfo = pm.getApplicationInfo(context.getPackageName(),PackageManager.GET_META_DATA);
+            applicationInfo = packageManager.getApplicationInfo(context.getPackageName(),PackageManager.GET_META_DATA);
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
             return;
         }
         final int appIconResId=applicationInfo.icon;
         Bitmap largeIcon = BitmapFactory.decodeResource(context.getResources(), appIconResId);
-
-        // create notification builder
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
-        builder.setContentIntent(contentIntent);
-
-        // set notification info
-        builder.setTicker("");
-        builder.setContentTitle(title);
-        builder.setContentText(message);
-
-        // set icon
         builder.setLargeIcon(largeIcon);
+
+        // Set small icon bitmap in builder
         builder.setSmallIcon(context.getResources().getIdentifier("notification_icon", "drawable", context.getPackageName()));
 
         // fire now
@@ -75,8 +89,6 @@ public class NotificationReceiver extends BroadcastReceiver {
         builder.setAutoCancel(true);
 
         // fire notification
-        NotificationManager manager = (NotificationManager) context.getSystemService(Service.NOTIFICATION_SERVICE);
         manager.notify(requestCode, builder.build());
     }
-
 }
